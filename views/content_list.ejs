@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= contentTypeName.toUpperCase() %> List</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f2f2f2;
+}
+.item {
+  background: #fff;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+}
+.poster-wrap {
+  position: relative;
+}
+.poster {
+  width: 120px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.preview-video {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 130px;
+  width: 280px;
+  border-radius: 8px;
+  background: black;
+  z-index: 100;
+}
+.title { flex: 1; font-weight: bold; word-break: break-word; }
+.actions a {
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  color: #fff;
+  margin-left: 5px;
+}
+.actions a.open { background: #4caf50; }
+.actions a.download { background: #2196f3; }
+.quota-block { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1><%= contentTypeName.toUpperCase() %></h1>
+
+<% if (!items || items.length === 0) { %>
+  <p>No content available</p>
+<% } %>
+
+<% items.forEach(item => { %>
+<div class="item">
+  <div class="poster-wrap">
+    <img
+      class="poster"
+      src="<%= item.poster || '/placeholder.jpg' %>"
+      onmouseenter="showPreview(this)"
+      onmouseleave="hidePreview(this)"
+    />
+    <% if (item.preview) { %>
+      <video class="preview-video" muted loop preload="metadata" src="<%= item.preview %>"></video>
+    <% } %>
+  </div>
+
+  <div class="title"><%= item.title %></div>
+
+  <div class="actions">
+    <% if (item.canUse) { %>
+      <a class="open" href="<%= item.playerUrl %>">Open</a>
+      <a class="download" href="<%= item.downloadUrl %>">Download</a>
+    <% } else { %>
+      <span class="quota-block"><%= item.reason || "Quota exceeded" %></span>
+    <% } %>
+  </div>
+</div>
+<% }) %>
+
+<script>
+function showPreview(img) {
+  const video = img.parentElement.querySelector(".preview-video");
+  if (!video) return;
+  video.style.display = "block";
+  video.currentTime = 0;
+  video.play().catch(() => {});
+}
+function hidePreview(img) {
+  const video = img.parentElement.querySelector(".preview-video");
+  if (!video) return;
+  video.pause();
+  video.style.display = "none";
+}
+</script>
+
+</body>
+</html>

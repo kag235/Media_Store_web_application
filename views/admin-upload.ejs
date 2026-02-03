@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Upload</title>
+<style>
+body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; margin: 0; }
+h1 { text-align: center; margin-bottom: 20px; }
+form { max-width: 500px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+label { display: block; margin-top: 15px; font-weight: bold; }
+input[type="text"], select, input[type="file"], textarea { width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+button { margin-top: 20px; width: 100%; padding: 10px; border: none; border-radius: 5px; background: #4caf50; color: white; font-size: 1rem; cursor: pointer; }
+button:hover { background: #499c4e; }
+p.message { text-align: center; font-weight: bold; margin-top: 15px; }
+a.back { display: block; text-align: center; margin-top: 20px; color: #007bff; text-decoration: none; }
+a.back:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>Upload New Content</h1>
+
+<p id="message" class="message"></p>
+
+<form id="uploadForm" enctype="multipart/form-data">
+    <label for="title">Content Title</label>
+    <input type="text" id="title" name="title" required>
+
+    <label for="description">Description (optional)</label>
+    <textarea id="description" name="description" rows="3"></textarea>
+
+    <label for="category">Category</label>
+    <select id="category" name="category" required>
+        <option value="">-- Select Category --</option>
+        <% if (categories && categories.length > 0) { %>
+            <% categories.forEach(cat => { %>
+                <option value="<%= cat.content_type_name %>"><%= cat.content_type_name.replace('_',' ').toUpperCase() %></option>
+            <% }) %>
+        <% } else { %>
+            <option disabled>No categories available</option>
+        <% } %>
+    </select>
+
+    <label for="file">Select File</label>
+    <input type="file" id="file" name="file" required>
+
+    <button type="submit">Upload</button>
+</form>
+
+<a class="back" href="/admin/dashboard">Back to Dashboard</a>
+
+<script>
+const form = document.getElementById('uploadForm');
+const messageEl = document.getElementById('message');
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault(); // prevent page reload
+
+    const formData = new FormData(form);
+    messageEl.textContent = "Uploading...";
+    messageEl.style.color = "black";
+
+    try {
+        // ✅ Correct POST URL for content-upload
+        const res = await fetch('/admin/content-upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const text = await res.text();
+        if (res.ok) {
+            messageEl.textContent = text; // display Content ID message
+            messageEl.style.color = "green";
+            form.reset(); // clear form
+        } else {
+            messageEl.textContent = `❌ Upload failed: ${text}`;
+            messageEl.style.color = "red";
+        }
+    } catch (err) {
+        console.error(err);
+        messageEl.textContent = `❌ Upload error: ${err.message}`;
+        messageEl.style.color = "red";
+    }
+});
+</script>
+
+</body>
+</html>

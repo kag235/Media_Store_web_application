@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - <%= user.user_name %></title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; margin: 0; }
+        h1 { margin-bottom: 20px; text-align: center; }
+        .quota-container { max-width: 400px; margin: 0 auto 20px auto; background: #ddd; border-radius: 20px; overflow: hidden; }
+        .quota-bar { height: 25px; background: #4caf50; text-align: center; color: white; line-height: 25px; font-weight: bold; transition: width 0.3s; }
+        .quota-info { text-align: center; margin-bottom: 20px; font-weight: bold; }
+        form { text-align: center; margin-bottom: 20px; }
+        input[type="text"] { padding: 8px; width: 200px; border-radius: 5px; border: 1px solid #ccc; }
+        button { padding: 8px 15px; border-radius: 5px; border: none; background: #4caf50; color: white; cursor: pointer; }
+        button:hover { background: #45a049; }
+        p.message { text-align: center; font-weight: bold; }
+        .links { text-align: center; margin-top: 30px; }
+        .links a { display: inline-block; margin: 5px 10px; color: #007bff; text-decoration: none; }
+        .links a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Welcome, <%= user.user_name %>!</h1>
+
+    <% if (quota) { %>
+        <div class="quota-container">
+            <div class="quota-bar" style="width: <%= quota.totalGB ? quota.usedPercentage : 0 %>%;">
+                <%= quota.usedGB.toFixed(2) %> / <%= quota.totalGB %> GB
+            </div>
+        </div>
+
+        <div class="quota-info">
+            Remaining quota: <%= quota.remainingGB.toFixed(2) %> GB
+            <% if (quota.remainingGB <= 0) { %>
+                <span style="color: red;">(Quota exceeded!)</span>
+            <% } %>
+        </div>
+
+        <!-- Redeem passcode form -->
+        <form action="/attendee/redeem-passcode" method="POST">
+            <input type="text" name="passcode" placeholder="Enter passcode" required>
+            <button type="submit">Redeem</button>
+        </form>
+
+        <% if (typeof redeemMessage !== 'undefined' && redeemMessage) { %>
+            <p class="message" style="color: <%= redeemSuccess ? 'green' : 'red' %>;">
+                <%= redeemMessage %>
+            </p>
+        <% } %>
+    <% } else { %>
+        <p style="text-align: center; color: red;">Quota information not available.</p>
+    <% } %>
+
+<div class="links">
+    <% if (categories && categories.length > 0) { %>
+        <% categories.forEach(cat => { %>
+            <a href="/content/<%= cat.content_type_name %>">
+                <%= cat.content_type_name.replace('_', ' ').toUpperCase() %>
+                (<%= cat.total %>)
+            </a>
+        <% }) %>
+    <% } else { %>
+        <p>No categories available</p>
+    <% } %>
+
+    <br><br>
+    <a href="/attendee/logout">Logout</a>
+</div>
+</body>
+</html>

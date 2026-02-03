@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Passcodes</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; }
+        h1, h2 { text-align: center; }
+        form { max-width: 400px; margin: 0 auto 20px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input { width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { margin-top: 15px; width: 100%; padding: 10px; border: none; border-radius: 5px; background: #4caf50; color: white; font-size: 1rem; cursor: pointer; }
+        button:hover { background: #45a049; }
+        p.message { text-align: center; font-weight: bold; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background: #eee; }
+        a.logout, a.upload { display: inline-block; text-align: center; margin: 20px 10px 0; color: #007bff; text-decoration: none; }
+        a.logout:hover, a.upload:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<h1>Passcode Management</h1>
+
+<p id="message" class="message"></p>
+
+<form id="passcodeForm">
+    <label>Quota (GB):
+        <input type="number" name="quota_gb" value="5" required>
+    </label>
+    <label>Expires in Days:
+        <input type="number" name="expires_days" value="30">
+    </label>
+    <button type="submit">Generate Passcode</button>
+</form>
+
+<h2>Last 50 Passcodes</h2>
+<table id="passcodesTable">
+    <thead>
+        <tr>
+            <th>Passcode</th>
+            <th>Quota (GB)</th>
+            <th>Used?</th>
+            <th>Issued At</th>
+            <th>Expires At</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% passcodes.forEach(pass => { %>
+        <tr>
+            <td><%= pass.access_passcode %></td>
+            <td><%= pass.access_passcode_quota_gb %></td>
+            <td><%= pass.access_passcode_is_used ? 'Yes' : 'No' %></td>
+            <td><%= new Date(pass.access_passcode_issued_at).toLocaleString() %></td>
+            <td><%= pass.access_passcode_expires_at ? new Date(pass.access_passcode_expires_at).toLocaleString() : 'Never' %></td>
+        </tr>
+        <% }) %>
+    </tbody>
+</table>
+
+<a class="logout" href="/admin/logout">Logout</a>
+<a class="upload" href="/content-upload">Upload Content</a>
+
+<script>
+const form = document.getElementById('passcodeForm');
+const messageEl = document.getElementById('message');
+const tableBody = document.querySelector('#passcodesTable tbody');
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    messageEl.textContent = "Generating passcode...";
+    messageEl.style.color = "black";
+
+    try {
+        const res = await fetch('/admin/passcodes/generate', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            messageEl.textContent = `✅ Passcode generated: ${data.passcode}`;
+            messageEl.style.color = "green";
+
+            // Refresh table
+            const jsonRes = await fetch('/admin/passcodes/json');
+            const passes = await jsonRes.json();
+
+            tableBody.innerHTML = "";
+            passes.forEach(pass => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${pass.access_passcode}</td>
+                    <td>${pass.access_passcode_quota_gb}</td>
+                    <td>${pass.access_passcode_is_used ? 'Yes' : 'No'}</td>
+                    <td>${new Date(pass.access_passcode_issued_at).toLocaleString()}</td>
+                    <td>${pass.access_passcode_expires_at ? new Date(pass.access_passcode_expires_at).toLocaleString() : 'Never'}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+        } else {
+            messageEl.textContent = `❌ Failed: ${data.message || 'Unknown error'}`;
+            messageEl.style.color = "red";
+        }
+    } catch (err) {
+        console.error(err);
+        messageEl.textContent = `❌ Error: ${err.message}`;
+        messageEl.style.color = "red";
+    }
+});
+</script>
+
+</body>
+</html>

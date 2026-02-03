@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Viewing <%= title %></title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background: #f2f2f2;
+    text-align: center;
+}
+video, audio {
+    width: 90%;
+    max-width: 800px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+iframe.document-viewer {
+    width: 90%;
+    max-width: 1000px;
+    height: 600px;
+    border: none;
+    margin-top: 10px;
+    background: white;
+}
+a.back-link {
+    margin-top: 20px;
+    display: inline-block;
+    color: #007bff;
+    text-decoration: none;
+}
+a.back-link:hover { text-decoration: underline; }
+p.error { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1><%= title %></h1>
+
+<% if (canUse) { %>
+
+    <% if (contentKind === 'video') { %>
+        <% if (hlsUrl) { %>
+            <video controls autoplay playsinline>
+                <source src="<%= hlsUrl %>" type="application/vnd.apple.mpegurl">
+                Your browser does not support HLS playback.
+            </video>
+        <% } else { %>
+            <p class="error">Video stream unavailable</p>
+        <% } %>
+
+    <% } else if (contentKind === 'audio') { %>
+        <audio controls autoplay>
+            <source src="/content/originals/<%= originalPath %>" type="<%= mimeType %>">
+            Your browser does not support audio playback.
+        </audio>
+
+    <% } else { %>
+        <iframe class="document-viewer" src="/content/originals/<%= originalPath %>"></iframe>
+    <% } %>
+
+<% } else { %>
+    <p class="error"><%= reason || "You do not have enough quota to view this content." %></p>
+<% } %>
+
+<p><a class="back-link" href="/content/<%= contentTypeName %>">← Back to list</a></p>
+
+</body>
+</html>
