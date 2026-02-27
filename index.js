@@ -1,75 +1,71 @@
-/**
- * index.js
- * Main app entry point
- */
-
 const express = require('express');
 const app = express();
-const port = 3000;
-const path = require('path');
-
+const morgan = require('morgan');
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
-const sqlite3 = require('sqlite3').verbose();
-require('dotenv').config();
+const { Pool } = require('pg');
+const dotenv = require('dotenv');
 
-/* ============================
-   MIDDLEWARE (ORDER MATTERS)
-============================ */
+// Load environment variables from .env file
+dotenv.config();
 
-// Body parsers
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-// Sessions
-app.use(session({
-    store: new SQLiteStore({ db: 'sessions.db' }),
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 2 }
-}));
-
-// Make session user available to EJS
-app.use((req, res, next) => {
-    res.locals.user = req.session.user || null;
-    next();
-});
-
-// View engine & static files
-app.set('view engine', 'ejs');
-app.use(express.static(path.join(__dirname, 'public')));
-
-/* ============================
-   DATABASE
-============================ */
-
-global.db = new sqlite3.Database('./database.db', err => {
-    if (err) {
-        console.error(err);
+// Environment Variable Validation
+const REQUIRED_ENV_VARS = ['DB_USER', 'DB_PASSWORD', 'DB_NAME', 'SESSION_SECRET'];
+for (const varName of REQUIRED_ENV_VARS) {
+    if (!process.env[varName]) {
+        console.error(`Environment variable ${varName} is not defined`);
         process.exit(1);
     }
-    console.log("Database connected");
-    global.db.run("PRAGMA foreign_keys=ON");
+}
+
+// Database Connection Pooling
+const pool = new Pool({
+    user: process.env.DB_USER,
+    host: 'localhost',
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: 5432,
 });
 
-/* ============================
-   ROUTES
-============================ */
+// Middleware Setup
+app.use(morgan('dev')); // Request logging
+app.use(express.json()); // Parse JSON requests
 
-app.get('/', (req, res) => {
-    res.render('index');
+// Session security
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: true }, // Use secure cookies
+}));
+
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something went wrong!');
 });
 
-app.use('/attendee', require('./routes/attendee'));
-app.use('/content', require('./routes/content'));
-app.use('/admin', require('./routes/admin'));
-app.use('/admin', require('./routes/content-upload')); // ✅ FIXED
+// Graceful Shutdown
+const shutdown = () => {
+    console.log('Shutting down gracefully...');
+    pool.end(() => {
+        console.log('Database pool closed.');
+        process.exit(0);
+    });
+};
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
-/* ============================
-   SERVER
-============================ */
+// Health Check Endpoint
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
-app.listen(port, () => {
-    console.log(`App listening on port ${port}`);
+// Error Pages
+app.use((req, res) => {
+    res.status(404).send('Sorry, page not found!');
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
